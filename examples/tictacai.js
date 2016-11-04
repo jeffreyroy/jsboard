@@ -19,7 +19,7 @@ var piece_o = jsboard.piece({text:"O", fontSize:"45px", textAlign:"center"});
 myBoard.cell("each").on("click", function() {
     if (myBoard.cell(this).get()==null) {
         myBoard.cell(this).place(piece_x.clone());
-        console.log(checkRow([0, 0], [0, 1], "X", "X", "X"));
+        console.log(checkWin());
         nummoves++;
         if (nummoves == 9) {
           window.alert("Cat's game!  Thanks for playing!");
@@ -38,6 +38,21 @@ function r(n){
   return Math.floor((Math.random() * n) )
 }
 
+ // def computer_move
+ //    computer_move = 0
+ //    if check_win > 0
+ //      computer_move = check_win
+ //      @board.result = 1
+ //    elsif check_block > 0
+ //      computer_move = check_block
+ //      block_message
+ //    else
+ //      move_message
+ //      computer_move = computer_random_move
+ //    end
+ //    computer_move
+ //  end
+
 // Computer chooses a move
 function compPlay() {
   // Check to see if cat's game (shouldn't see this)
@@ -46,50 +61,68 @@ function compPlay() {
     window.alert("All squares occupied!");
     return false;
   }
-  // Choose random cell
-  compCell = randomMove();
+  compCell = checkWin();
+  if(compCell == null) {
+    // Choose random cell
+    compCell = randomMove();
+  }
+  else {
+    window.alert("I win!");
+  }
   // Make computer move
   compCell.place(piece_o.clone());
   nummoves++;
 }
-  // # Check to see whether a row contains specific values
-  // # Row indicated by two squares, a and b
-  // # Values to check for are in va, vb, vc
-  // # 0 = blank, 1 = computer, 2 = player
-  // def check_row(a, b, va, vb, vc)
-  //   c = 15 - a - b
-  //   # Squares are out of bounds (should not ever happen)
-  //   if a < 1 || a > 9  || b < 1 || b > 9
-  //     puts "Out of bounds error while checking row #{a} #{b}!"
-  //     return false
-  //   # Third space is not legal
-  //   elsif c < 1 || c > 9 || c == a || c == b || a == b
-  //     return false
-  //   # Check whether third space has the value we're looking
-  //   elsif @board_array[a] == va && @board_array[b] == vb && @board_array[c] == vc
-  //     return true
-  //   else
-  //     return false
-  //   end
-  // end
 
-function checkRow(aCoord, bCoord, va, vb, vc) {
-  var a = BOARDTRANS[aCoord[0]][aCoord[1]];
-  var b = BOARDTRANS[bCoord[0]][bCoord[1]];
+// Check whether the computer can win
+// Returns winning cell, or null if no win
+// i, j, k are board spaces in magic square notation
+function checkWin() {
+  var k = 0;
+  var winningMove = null;
+  for(var i=1; i<=9; i++) {
+    for(var j=1; j<=9; j++) {
+      if(checkRow(i, j, "O", "O", null)) {
+        k = 15 - i - j;
+        winningMove = myBoard.cell(REVTRANS[k]);
+      }
+    }
+  }
+  return winningMove;
+}
+// def check_win
+//   winning_move = 0
+//   (1..9).each do |a|
+//     (1..9).each do |b|
+//       if @board.check_row(a, b, 1, 1, 0)
+//         winning_move = 15 - a - b
+//       end
+//     end
+//   end
+//   winning_move
+// end
+
+// Check whether cells in a straight line contain specific values
+// Line indicated by two cells with magic square values a and b
+// Values to check for are in va, vb, vc
+// null = blank, "O" = computer, "X" = player
+function checkRow(a, b, va, vb, vc) {
+  // Get third cell in line
   var c = 15 - a - b;
-  // Is cell out of bounds? (Shouldn't see this)
+  // Is third cell out of bounds? (Shouldn't see this)
   if(a < 1 || a > 9  || b < 1 || b > 9) {
     window.alert("Out of bounds error while checking row #{a} #{b}!");
     return false;
   }
-  // Is square legal?
+  // Is third cell legal?
   if (c < 1 || c > 9 || c == a || c == b || a == b) {
     return false;
   }
+  // Get current values in cells
   aVal = myBoard.cell(REVTRANS[a]).get();
   bVal = myBoard.cell(REVTRANS[b]).get();
   cVal = myBoard.cell(REVTRANS[c]).get();
-  // Check whether third space has the value we're looking for
+  // Check whether cells have the values we're looking for
   if(aVal == va && bVal == vb && cVal == vc) {
     return true;
   }
