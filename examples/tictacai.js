@@ -5,6 +5,7 @@
 var BOARDTRANS = [[6, 1, 8], [7, 5, 3], [2, 9, 4]];
 var REVTRANS = [null, [0, 1], [2, 0], [1, 2], [2, 2], [1, 1], [0, 0], [1, 0], [0, 2], [2, 1]];
 var nummoves = 0;
+var gameOver = false;
 
 // Framework for jsboard
 // create board
@@ -15,17 +16,31 @@ myBoard.cell("each").style({width:"75px", height:"75px"});
 var piece_x = jsboard.piece({text:"X", fontSize:"45px", textAlign:"center"});
 var piece_o = jsboard.piece({text:"O", fontSize:"45px", textAlign:"center"});
 
-// alternate turns of x and o
+function showBlurb(text) {
+  document.getElementById("blurb").innerHTML = text;
+}
+
+// Get player's move
 myBoard.cell("each").on("click", function() {
+    // Check whether cell is occupied
     if (myBoard.cell(this).get()==null) {
+        // Make player move
         myBoard.cell(this).place(piece_x.clone());
-        console.log(checkWin());
+        // Increment move counter
         nummoves++;
-        if (nummoves == 9) {
-          window.alert("Cat's game!  Thanks for playing!");
+        // Check whether player has won
+        if (playerWon()) {
+          showBlurb("You win!");
+          gameOver = true;
         }
+        // Check whether board is full
+        else if (nummoves == 9) {
+          showBlurb("Cat's game!  Thanks for playing!");
+          gameOver = true;
+        }
+        // Otherwise, make a move for the computer
         else {
-          compPlay()
+          compTurn()
         }
 
     }
@@ -38,69 +53,80 @@ function r(n){
   return Math.floor((Math.random() * n) )
 }
 
- // def computer_move
- //    computer_move = 0
- //    if check_win > 0
- //      computer_move = check_win
- //      @board.result = 1
- //    elsif check_block > 0
- //      computer_move = check_block
- //      block_message
- //    else
- //      move_message
- //      computer_move = computer_random_move
- //    end
- //    computer_move
- //  end
-
-// Computer chooses a move
-function compPlay() {
+// Computer's turn
+function compTurn() {
   // Check to see if cat's game (shouldn't see this)
-  var compCell = null;
-  if(nummoves >= 9) {
-    window.alert("All squares occupied!");
+  if(gameOver) {
+    showBlurb("I can't move because the game is over!");
     return false;
   }
-  compCell = checkWin();
-  if(compCell == null) {
-    // Choose random cell
-    compCell = randomMove();
-  }
-  else {
-    window.alert("I win!");
-  }
-  // Make computer move
-  compCell.place(piece_o.clone());
+  // Make a move
+  compMove().place(piece_o.clone());
+  // Increment move counter
   nummoves++;
 }
 
+// CompMove
+// Return intelligent move for the computer
+function compMove() {
+  var compCell = null;
+  var centerCell = myBoard.cell([1, 1]);
+  // Check for winning move
+  compCell = checkWin();
+  if(compCell != null) {
+    showBlurb("I win!");
+    gameOver = true;
+    return compCell;
+  }
+  // Check for blocking move
+  compCell = checkBlock();
+  if(compCell != null) {
+    showBlurb("I see what you're trying to do!");
+    return compCell;
+  }
+  // Try to move in the middle
+  if(centerCell.get() == null) {
+    return centerCell;
+  }
+  // Make a random move
+  return randomMove();
+}
+
+// Check whether the player has won
+function playerWon() {
+  return checkMove("X", "X");
+}
+
 // Check whether the computer can win
-// Returns winning cell, or null if no win
-// i, j, k are board spaces in magic square notation
 function checkWin() {
+  return checkMove("O", null);
+}
+
+// Check whether the computer can block a player win
+function checkBlock() {
+  return checkMove("X", null);
+}
+
+// Checks all straight lines on board to try to find a formation
+// Line must contain two cells with firstValue and one with secondValue
+// i, j, k are board spaces in magic square notation
+// checkMove returns cell with secondValue if formation is found
+// otherwise returns null
+function checkMove(firstValue, secondValue) {
   var k = 0;
-  var winningMove = null;
+  var foundMove = null;
+  // Loop through every straight line on the board
   for(var i=1; i<=9; i++) {
     for(var j=1; j<=9; j++) {
-      if(checkRow(i, j, "O", "O", null)) {
+      // Check for winning move in this line
+      if(checkRow(i, j, firstValue, firstValue, secondValue)) {
         k = 15 - i - j;
-        winningMove = myBoard.cell(REVTRANS[k]);
+        foundMove = myBoard.cell(REVTRANS[k]);
       }
     }
   }
-  return winningMove;
+  return foundMove;
 }
-// def check_win
-//   winning_move = 0
-//   (1..9).each do |a|
-//     (1..9).each do |b|
-//       if @board.check_row(a, b, 1, 1, 0)
-//         winning_move = 15 - a - b
-//       end
-//     end
-//   end
-//   winning_move
-// end
 
 // Check whether cells in a straight line contain specific values
 // Line indicated by two cells with magic square values a and b
@@ -111,7 +137,7 @@ function checkRow(a, b, va, vb, vc) {
   var c = 15 - a - b;
   // Is third cell out of bounds? (Shouldn't see this)
   if(a < 1 || a > 9  || b < 1 || b > 9) {
-    window.alert("Out of bounds error while checking row #{a} #{b}!");
+    showBlurb("Out of bounds error while checking row #{a} #{b}!");
     return false;
   }
   // Is third cell legal?
@@ -148,7 +174,7 @@ function randomMove() {
     n++;
   }
   if(n>999) {
-    window.alert("Overflow!");
+    showBlurb("Overflow!");
     return null;
   }
   return randCell;
